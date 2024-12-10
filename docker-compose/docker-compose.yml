@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: db
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin status -uroot -p$$MYSQL_ROOT_PASSWORD --protocol=TCP"]
+      interval: 4s
+      timeout: 10s
+      retries: 10
+
+  setup-db:
+    build: ./setup-db
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+      MYSQL_DATABASE: db
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  web-api:
+    build: ./web-api
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+      MYSQL_DATABASE: db
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      setup-db:
+        condition: service_completed_successfully
+    networks:
+      - app-network
+
+volumes:
+  mysql_data:
+
+networks:
+  app-network:

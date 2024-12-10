@@ -81,3 +81,15 @@ Conflict. The container name "/[SERVICE_NAME]" is already in use by container "X
 ```bash
 docker rm -f [SERVICE_NAME]
 ```
+
+## Docker Compose mode
+
+```bash
+docker compose up
+```
+
+### Cleanup
+
+```bash
+docker compose down -v
+```
