@@ -2,17 +2,17 @@ version: '3.8'
 
 services:
 
-  mysql:
+  todo-db:
     image: mysql:8.0
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: db
+      MYSQL_ROOT_PASSWORD: example
+      MYSQL_DATABASE: todos
     volumes:
-      - mysql_data:/var/lib/mysql
+      - todo-db-data:/var/lib/mysql
     ports:
       - "3306:3306"
     networks:
-      - app-network
+      - todo-network
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin status -uroot -p$$MYSQL_ROOT_PASSWORD --protocol=TCP"]
       interval: 4s
@@ -20,37 +20,41 @@ services:
       retries: 10
 
   setup-db:
-    build: ./setup-db
+    build: 
+      context: .
+      dockerfile: setup-db/Dockerfile
     environment:
-      MYSQL_HOST: mysql
+      MYSQL_HOST: todo-db
       MYSQL_USER: root
-      MYSQL_PASSWORD: root
-      MYSQL_DATABASE: db
+      MYSQL_PASSWORD: example
+      MYSQL_DATABASE: todos
     depends_on:
-      mysql:
+      todo-db:
         condition: service_healthy
     networks:
-      - app-network
+      - todo-network
 
   web-api:
-    build: ./web-api
+    build: 
+      context: .
+      dockerfile: web-api/Dockerfile
     environment:
-      MYSQL_HOST: mysql
+      MYSQL_HOST: todo-db
       MYSQL_USER: root
-      MYSQL_PASSWORD: root
-      MYSQL_DATABASE: db
+      MYSQL_PASSWORD: example
+      MYSQL_DATABASE: todos
     ports:
-      - "8080:8080"
+      - "8000:8000"
     depends_on:
-      mysql:
+      todo-db:
         condition: service_healthy
       setup-db:
         condition: service_completed_successfully
     networks:
-      - app-network
+      - todo-network
 
 volumes:
-  mysql_data:
+  todo-db-data:
 
 networks:
-  app-network:
+  todo-network:

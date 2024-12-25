@@ -1,47 +1,84 @@
-from fastapi import FastAPI, HTTPException
-import aiomysql
-import os
+from fastapi import FastAPI, HTTPException, Depends
+from pydantic import BaseModel
+from typing import List, Optional
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import create_engine, Column, Integer, String, Boolean
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
 
-app = FastAPI()
+from todo.models import TodoModel
 
-# Database connection configuration
-db_config = {
-    "host": os.getenv("MYSQL_HOST", "db"),
-    "user": os.getenv("MYSQL_USER", "user"),
-    "password": os.getenv("MYSQL_PASSWORD", "password"),
-    "db": os.getenv("MYSQL_DATABASE", "fastapi_db"),
-}
+# Database configuration
+SQLALCHEMY_DATABASE_URL = "mysql+pymysql://root:example@todo-db/todos"
 
-async def get_connection():
-    conn = await aiomysql.connect(**db_config)
-    return conn
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-@app.get("/")
-async def read_root():
-    return {"message": "Welcome to FastAPI with MySQL"}
 
-@app.get("/items")
-async def get_items():
+# Initialize FastAPI app
+app = FastAPI(title="ToDo API")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Pydantic model for ToDo items
+class TodoItem(BaseModel):
+    id: Optional[int] = None
+    title: str
+    completed: bool = False
+
+    class Config:
+        from_attributes = True
+
+# Dependency to get database session
+def get_db():
+    db = SessionLocal()
     try:
-        conn = await get_connection()
-        cur = await conn.cursor()
-        
-        # Execute a simple SELECT query
-        await cur.execute("SELECT * FROM items")
-        result = await cur.fetchall()
-        
-        # Convert result to list of dictionaries
-        items = []
-        for row in result:
-            items.append({
-                "id": row[0],
-                "title": row[1],
-                "description": row[2]
-            })
-        
-        await cur.close()
-        conn.close()
-        
-        return {"items": items}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) 
+        yield db
+    finally:
+        db.close()
+
+# API endpoints
+@app.get("/todos", response_model=List[TodoItem])
+async def get_todos(db: Session = Depends(get_db)):
+    return db.query(TodoModel).all()
+
+@app.post("/todos", response_model=TodoItem)
+async def create_todo(todo: TodoItem, db: Session = Depends(get_db)):
+    db_todo = TodoModel(title=todo.title, completed=todo.completed)
+    db.add(db_todo)
+    db.commit()
+    db.refresh(db_todo)
+    return db_todo
+
+@app.put("/todos/{todo_id}", response_model=TodoItem)
+async def update_todo(todo_id: int, todo: TodoItem, db: Session = Depends(get_db)):
+    db_todo = db.query(TodoModel).filter(TodoModel.id == todo_id).first()
+    if db_todo is None:
+        raise HTTPException(status_code=404, detail="Todo not found")
+    
+    db_todo.title = todo.title
+    db_todo.completed = todo.completed
+    db.commit()
+    db.refresh(db_todo)
+    return db_todo
+
+@app.delete("/todos/{todo_id}")
+async def delete_todo(todo_id: int, db: Session = Depends(get_db)):
+    db_todo = db.query(TodoModel).filter(TodoModel.id == todo_id).first()
+    if db_todo is None:
+        raise HTTPException(status_code=404, detail="Todo not found")
+    
+    db.delete(db_todo)
+    db.commit()
+    return {"message": "Todo deleted successfully"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

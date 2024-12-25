@@ -1,10 +1,12 @@
-FROM python:3.11-slim
+FROM python:3.12
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY setup-db/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY shared/todo/ ./todo/
+
+COPY setup-db/setup.py .
 
 CMD ["python", "setup.py"]
