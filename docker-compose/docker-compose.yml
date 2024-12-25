@@ -23,11 +23,6 @@ services:
     build: 
       context: .
       dockerfile: setup-db/Dockerfile
-    environment:
-      MYSQL_HOST: todo-db
-      MYSQL_USER: root
-      MYSQL_PASSWORD: example
-      MYSQL_DATABASE: todos
     depends_on:
       todo-db:
         condition: service_healthy
@@ -38,11 +33,6 @@ services:
     build: 
       context: .
       dockerfile: web-api/Dockerfile
-    environment:
-      MYSQL_HOST: todo-db
-      MYSQL_USER: root
-      MYSQL_PASSWORD: example
-      MYSQL_DATABASE: todos
     ports:
       - "8000:8000"
     depends_on:

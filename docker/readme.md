@@ -132,11 +132,15 @@ cd todo-app-db
 docker build -t todo-app-db .
 ```
 
+### Creating the network
+
 ```bash
 docker network create todo-network
 ```
 
 `docker network create`: Creates an isolated network for our containers to communicate among them.
+
+### Creating the database
 
 ```bash
 docker run \
@@ -169,5 +173,6 @@ docker run \
 ```bash
 docker stop todo-api todo-db
 docker rm todo-api todo-db
+docker volume rm todo-db-data
 docker network rm todo-network
 ```

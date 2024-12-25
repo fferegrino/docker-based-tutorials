@@ -2,19 +2,23 @@
 
 ### Create a network
 
+
 ```bash
-docker network create docker-compose-network
+docker network create todo-network
 ```
+
+`docker network create`: Creates an isolated network for our containers to communicate among them.
+
 
 ### Run a MySQL container
 
 ```bash
 docker run \
-  --network docker-compose-network \
-  --name mysql \
-  -e MYSQL_ROOT_PASSWORD=root \
-  -e MYSQL_DATABASE=db \
-  -v mysql_data:/var/lib/mysql \
+  --name todo-db \
+  --network todo-network \
+  -v todo-db-data:/var/lib/mysql \
+  -e MYSQL_ROOT_PASSWORD=example \
+  -e MYSQL_DATABASE=todos \
   -p 3306:3306 \
   mysql:8.0
 ```
@@ -24,7 +28,10 @@ docker run \
 #### Build the setup-db container
 
 ```bash
-docker build -t setup-db ./setup-db
+docker build \
+  -f ./setup-db/Dockerfile \
+  -t setup-db \
+  .
 ```
 
 #### Run the setup-db container
@@ -33,10 +40,6 @@ docker build -t setup-db ./setup-db
 docker run \
   --network docker-compose-network \
   --name setup-db \
-  -e MYSQL_HOST=mysql \
-  -e MYSQL_USER=root \
-  -e MYSQL_PASSWORD=root \
-  -e MYSQL_DATABASE=db \
   setup-db
 ```
 
@@ -47,7 +50,10 @@ After the container is running, you can check if the database is ready.
 #### Build the web-api container
 
 ```bash
-docker build -t web-api ./web-api
+docker build \
+  -f ./web-api/Dockerfile \
+  -t web-api \
+  .
 ```
 
 #### Run the web-api container
@@ -56,10 +62,6 @@ docker build -t web-api ./web-api
 docker run \
   --network docker-compose-network \
   --name web-api \
-  -e MYSQL_HOST=mysql \
-  -e MYSQL_USER=root \
-  -e MYSQL_PASSWORD=root \
-  -e MYSQL_DATABASE=db \
   -p 8080:8080 \
   web-api
 ```
@@ -68,10 +70,10 @@ docker run \
 
 ```bash
 docker rm -f setup-db
-docker rm -f mysql
+docker rm -f todo-db
 docker rm -f web-api
-docker volume rm mysql_data
-docker network rm docker-compose-network
+docker volume rm todo-db-data
+docker network rm todo-network
 ```
 
 ### Troubleshooting
