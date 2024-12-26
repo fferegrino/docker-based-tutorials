@@ -9,7 +9,6 @@ docker network create todo-network
 
 `docker network create`: Creates an isolated network for our containers to communicate among them.
 
-
 ### Run a MySQL container
 
 ```bash
@@ -38,7 +37,7 @@ docker build \
 
 ```bash
 docker run \
-  --network docker-compose-network \
+  --network todo-network \
   --name setup-db \
   setup-db
 ```
@@ -60,18 +59,24 @@ docker build \
 
 ```bash
 docker run \
-  --network docker-compose-network \
+  --network todo-network \
   --name web-api \
-  -p 8080:8080 \
+  -p 8000:8000 \
   web-api
+```
+
+### Creating a ToDo
+
+```bash
+curl -X POST http://localhost:8000/todos \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Buy groceries"}'
 ```
 
 ### Cleanup
 
 ```bash
-docker rm -f setup-db
-docker rm -f todo-db
-docker rm -f web-api
+docker rm -f web-api todo-db setup-db
 docker volume rm todo-db-data
 docker network rm todo-network
 ```

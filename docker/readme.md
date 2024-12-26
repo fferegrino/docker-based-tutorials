@@ -127,11 +127,6 @@ Now, if we stop and restart the container, the todos will still be there, and th
 
 ## Demo 4: Creating a ToDo app with a database
 
-```bash
-cd todo-app-db
-docker build -t todo-app-db .
-```
-
 ### Creating the network
 
 ```bash
@@ -163,12 +158,29 @@ Command explanation:
    - `-p 3306:3306`: Maps the container's port 3306 to the host machine's port 3306
    - `mysql:8.0`: The image to use
 
+### Creating the ToDo app
+
+```bash
+cd todo-app-db
+docker build -t todo-app-db .
+```
+
 ```bash
 docker run \
   --network todo-network \
   -p 8000:8000 \
   todo-app-db
 ```
+
+### Creating a ToDo
+
+```bash
+curl -X POST http://localhost:8000/todos \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Buy groceries"}'
+```
+
+### Cleaning up
 
 ```bash
 docker stop todo-api todo-db
